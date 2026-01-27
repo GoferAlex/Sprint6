@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bufio"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,80 +15,90 @@ import (
 
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 
-	// получаем текущую директорию
-	curDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// меняем текущую директорию на родительскую
-	err = os.Chdir("..")
-
-	// получаем новую текущую директорию
-	curDir, err = os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// формируем абсолютный путь к файлу
-	name := filepath.Join(curDir, "index.html")
-
-	// читаем файл
-	s, err := os.ReadFile(name)
-	if err != nil {
-		http.Error(w, "ошибка при чтении файла", http.StatusInternalServerError)
-		return
-	}
+	page := `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form
+      enctype="multipart/form-data"
+      action="http://localhost:8080/upload"
+      method="post"
+    >
+      <input type="file" name="myFile" />
+      <input type="submit" value="upload" />
+    </form>
+  </body>
+</html>`
 
 	// записываем содержимое файла в тело ответа
-	w.Write(s)
+	w.Write([]byte(page))
 }
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
-	// 1 +
+	// парсим форму
 	r.ParseMultipartForm(10 << 20) // 10 MB
 
-	// 2.1 получаем файл из формы +
-	file, handler, err := r.FormFile("myFile")
+	// получаем файл из формы
+	file, _, err := r.FormFile("myFile")
 	if err != nil {
+		log.Fatal(err)
 		http.Error(w, "ошибка при получении файла", http.StatusInternalServerError)
 		return
 	}
-	// 2.2 закрываем файл +
+
+	// закрываем файл
 	defer file.Close()
 
-	// получаем текущую директорию
-	curDir, err := os.Getwd()
+	var b []byte
+
+	// создаем сканер для чтения файла
+	scanner := bufio.NewScanner(file)
+
+	// читаем файл построчно
+	for scanner.Scan() {
+		// вызываем функцию обработки для текущей строки
+		b = append(b, []byte(scanner.Text())...)
+	}
+	// проверяем ошибки во время чтения
+	err = scanner.Err()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// формируем абсолютный путь к файлу
-	name := filepath.Join(curDir, "Sprint6", handler.Filename)
-
-	// читаем файл
-	s, err := os.ReadFile(name)
-	if err != nil {
 		http.Error(w, "ошибка при чтении файла", http.StatusInternalServerError)
 		return
 	}
 
-	res, err := service.Convert(string(s))
+	fmt.Println(string(b))
+	// конвертируем строку
+	res, err := service.Convert(string(b))
 	if err != nil {
 		log.Fatal(err)
+		http.Error(w, "пустая строка", http.StatusInternalServerError)
+		return
 	}
-
-	//5, 6
+	fmt.Println(string(res))
+	// создаем локальный файл
 	fileName := time.Now().UTC().String() + ".txt"
 	rightFileName := strings.ReplaceAll(fileName, ":", "_")
-	absWayFile := filepath.Join(curDir, "Sprint6", rightFileName)
+	rightFileName, err = filepath.Abs(rightFileName)
+	if err != nil {
+		log.Fatal(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	if err := os.WriteFile(absWayFile, []byte(res), 0755); err != nil {
+	// записываем результат конвертации в локальный файл
+	if err := os.WriteFile(rightFileName, []byte(res), 0755); err != nil {
+		log.Fatal(err)
 		http.Error(w, "ошибка записи файла", http.StatusInternalServerError)
 		return
 	}
 
-	// 7 +
+	// записываем результат в тело ответа
 	w.Write([]byte(res))
 }
