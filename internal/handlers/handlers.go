@@ -14,6 +14,7 @@ import (
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.ServeFile(w, r, "../index.html")
+
 	w.WriteHeader(http.StatusOK)
 }
 
