@@ -12,18 +12,19 @@ import (
 )
 
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
-
-	http.ServeFile(w, r, "../index.html")
-
+	
 	// устанавливаем заголовок Content-Type
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	
 	w.WriteHeader(http.StatusOK)
+
+	http.ServeFile(w, r, "../index.html")
 }
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
