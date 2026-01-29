@@ -22,11 +22,11 @@ func main() {
 	mylog := log.New(file, "", log.LstdFlags|log.Lshortfile)
 
 	// create server
-	s := server.CreateServer(mylog)
+	s := server.NewServer(mylog)
 
 	// run server
-	err = http.ListenAndServe(s.Addr, s.Handler)
+	err = http.ListenAndServe(s.Server.Addr, s.Server.Handler)
 	if err != nil {
-		mylog.Fatal(err)
+		mylog.Println(err)
 	}
 }

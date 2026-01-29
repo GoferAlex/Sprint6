@@ -10,22 +10,18 @@ import (
 
 // структура сервера
 type Server struct {
-	Addr         string
-	Handler      http.Handler
-	ErrorLog     *log.Logger
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	Logger *log.Logger
+	Server *http.Server
 }
 
-func CreateServer(flog *log.Logger) *Server {
+func NewServer(flog *log.Logger) *Server {
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", handlers.DownloadHandler)
 	mux.HandleFunc("/upload", handlers.UploadHandler)
 
-	s := Server{
+	ServStandart := http.Server{
 		Addr:         ":8080",
 		Handler:      mux,
 		ErrorLog:     flog,
@@ -34,5 +30,9 @@ func CreateServer(flog *log.Logger) *Server {
 		IdleTimeout:  15 * time.Second,
 	}
 
-	return &s
+	Serv := Server{
+		Logger: flog,
+		Server: &ServStandart,
+	}
+	return &Serv
 }
