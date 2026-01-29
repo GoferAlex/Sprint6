@@ -27,6 +27,6 @@ func main() {
 	// run server
 	err = http.ListenAndServe(s.Server.Addr, s.Server.Handler)
 	if err != nil {
-		mylog.Println(err)
+		mylog.Fatal(err)
 	}
 }
